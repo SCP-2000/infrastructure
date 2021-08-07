@@ -34,5 +34,6 @@ in
   fileSystems."/persist" = {
     fsType = "btrfs";
     options = [ "subvol=persist" ] ++ mountOptions;
+    neededForBoot = true;
   };
 }
