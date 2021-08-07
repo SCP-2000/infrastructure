@@ -21,7 +21,7 @@
     deploy.nodes = {
       hel0 = {
         sshUser = "root";
-        hostname = "65.21.32.182";
+        hostname = "hel0.nichi.link";
         profiles.system.path = inputs.deploy-rs.lib.x86_64-linux.activate.nixos self.nixosConfigurations.hel0;
       };
     };

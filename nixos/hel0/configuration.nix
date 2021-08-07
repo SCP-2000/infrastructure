@@ -4,6 +4,8 @@
     useNetworkd = true;
     useDHCP = false;
     firewall.enable = false;
+    hostName = "hel0";
+    domain = "nichi.link";
   };
 
   systemd.network.networks = {
