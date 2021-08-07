@@ -1,5 +1,14 @@
 { config, pkgs, lib, ... }:
 {
+  nix = {
+    autoOptimiseStore = true;
+    trustedUsers = [ "root" ];
+    package = pkgs.nixUnstable;
+    extraOptions = ''
+      experimental-features = nix-command flakes ca-references ca-derivations
+    '';
+  };
+
   networking = {
     useNetworkd = true;
     useDHCP = false;
