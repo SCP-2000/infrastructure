@@ -8,7 +8,7 @@
 
   systemd.network.networks = {
     enp41s0 = {
-      name = enp41s0;
+      name = "enp41s0";
       DHCP = "ipv4";
       address = [ "2a01:4f9:3a:40c9::1/64" ];
       gateway = [ "fe80::1" ];
