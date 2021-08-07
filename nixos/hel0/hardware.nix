@@ -1,6 +1,6 @@
 { config, lib, pkgs, ... }:
 let
-  mountDevice = "/dev/disk/by-partuuid/d59a13b5-3e04-4d42-be80-1f1377d1e43c";
+  mountDevice = "/dev/disk/by-id/wwn-0x500003981ba001ae-part2";
   mountOptions = [
     "relatime"
     "compress-force=zstd"
