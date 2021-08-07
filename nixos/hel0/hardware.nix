@@ -1,11 +1,11 @@
 { config, lib, pkgs, ... }:
-let mountOptions = [
-  "device=PARTUUID=d59a13b5-3e04-4d42-be80-1f1377d1e43c"
-  "device=PARTUUID=eca0e072-abf6-2e4f-8221-6b5514a04a6c"
-  "relatime"
-  "compress-force=zstd"
-  "space_cache=v2"
-];
+let
+  mountDevice = "/dev/disk/by-partuuid/d59a13b5-3e04-4d42-be80-1f1377d1e43c";
+  mountOptions = [
+    "relatime"
+    "compress-force=zstd"
+    "space_cache=v2"
+  ];
 in
 {
   boot.initrd.availableKernelModules = [ "ahci" "sd_mod" ];
@@ -23,16 +23,19 @@ in
 
   fileSystems."/boot" = {
     fsType = "btrfs";
+    device = mountDevice;
     options = [ "subvol=boot" ] ++ mountOptions;
   };
 
   fileSystems."/nix" = {
     fsType = "btrfs";
+    device = mountDevice;
     options = [ "subvol=nix" ] ++ mountOptions;
   };
 
   fileSystems."/persist" = {
     fsType = "btrfs";
+    device = mountDevice;
     options = [ "subvol=persist" ] ++ mountOptions;
     neededForBoot = true;
   };
