@@ -4,6 +4,7 @@ nixpkgs.lib.nixosSystem {
   modules = [
     ./configuration.nix
     ./hardware.nix
+    ./services.nix
     inputs.impermanence.nixosModules.impermanence
   ];
 }
