@@ -48,9 +48,12 @@
       };
       http = {
         routers = {
-          rait = {
+          ping = {
             rule = "Host(`hel0.nichi.link`)";
-            # service = "ping@internal";
+            service = "ping@internal";
+          };
+          minio = {
+            rule = "Host(`s3.nichi.co`)";
             service = "minio";
           };
         };
