@@ -5,6 +5,36 @@
     sshKeyPaths = [ "/var/lib/sops.key" ];
     secrets = {
       minio = { };
+      telegraf = { };
+    };
+  };
+
+  security.wrappers.smartctl.source = "${pkgs.smartmontools}/bin/smartctl";
+  services.telegraf = {
+    enable = true;
+    environmentFiles = [ config.sops.secrets.telegraf.path ];
+    extraConfig = {
+      outputs = {
+        influxdb_v2 = {
+          urls = [ "https://stats.nichi.co" ];
+          token = "$INFLUX_TOKEN";
+          organization = "nichi";
+          bucket = "stats";
+        };
+      };
+      inputs = {
+        cpu = { };
+        disk = { };
+        diskio = { };
+        mem = { };
+        net = { };
+        system = { };
+        smart = {
+          path_smartctl = "${config.security.wrapperDir}/smartctl";
+          path_nvme = "${pkgs.nvme-cli}/bin/nvme";
+          devices = [ "/dev/disk/by-id/wwn-0x50000397fc5003aa -d ata" "/dev/disk/by-id/wwn-0x500003981ba001ae -d ata" ];
+        };
+      };
     };
   };
 
