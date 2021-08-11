@@ -1,5 +1,19 @@
 { config, lib, pkgs, ... }:
 {
+  sops = {
+    defaultSopsFile = ./secrets.yaml;
+    sshKeyPaths = [ "/var/lib/sops.key" ];
+    secrets = {
+      minio = { };
+    };
+  };
+
+  services.minio = {
+    enable = true;
+    listenAddress = "127.0.0.1:9000";
+    rootCredentialsFile = config.sops.secrets.minio.path;
+  };
+
   services.traefik = {
     enable = true;
     staticConfigOptions = {
@@ -36,7 +50,14 @@
         routers = {
           rait = {
             rule = "Host(`hel0.nichi.link`)";
-            service = "ping@internal";
+            # service = "ping@internal";
+            service = "minio";
+          };
+        };
+        services = {
+          minio.loadBalancer = {
+            passHostHeader = true;
+            servers = [{ url = "http://${config.services.minio.listenAddress}"; }];
           };
         };
       };

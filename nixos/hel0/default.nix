@@ -6,5 +6,6 @@ nixpkgs.lib.nixosSystem {
     ./hardware.nix
     ./services.nix
     inputs.impermanence.nixosModules.impermanence
+    inputs.sops-nix.nixosModules.sops
   ];
 }
