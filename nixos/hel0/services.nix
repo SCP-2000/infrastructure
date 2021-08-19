@@ -6,7 +6,19 @@
     secrets = {
       minio = { };
       telegraf = { };
+      nixbot = { };
     };
+  };
+
+  systemd.services.nixbot = {
+    serviceConfig = {
+      DynamicUser = true;
+      WorkingDirectory = "/tmp";
+      PrivateTmp = true;
+      LoadCredential = "nixbot:${config.sops.secrets.nixbot.path}";
+    };
+    script = "exec ${pkgs.nixbot-telegram}/bin/nixbot-telegram \${CREDENTIALS_DIRECTORY}/nixbot";
+    wantedBy = [ "multi-user.target" ];
   };
 
   security.wrappers.smartctl.source = "${pkgs.smartmontools}/bin/smartctl";
