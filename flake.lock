@@ -43,11 +43,11 @@
     },
     "flake-utils": {
       "locked": {
-        "lastModified": 1623875721,
-        "narHash": "sha256-A8BU7bjS5GirpAUv4QA+QnJ4CceLHkcXdRp4xITDB0s=",
+        "lastModified": 1629284811,
+        "narHash": "sha256-JHgasjPR0/J1J3DRm4KxM4zTyAj4IOJY8vIl75v/kPI=",
         "owner": "numtide",
         "repo": "flake-utils",
-        "rev": "f7e004a55b120c02ecb6219596820fcd32ca8772",
+        "rev": "c5d161cc0af116a2e17f54316f0bf43f0819785c",
         "type": "github"
       },
       "original": {
@@ -92,13 +92,36 @@
         "type": "github"
       }
     },
+    "nixbot": {
+      "inputs": {
+        "flake-utils": [
+          "flake-utils"
+        ],
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1622908748,
+        "narHash": "sha256-IaRrYREmHLxxtu8rz3MQV2yJQZ7e6QqW2L4tWurx0QQ=",
+        "owner": "Ninlives",
+        "repo": "nixbot-telegram",
+        "rev": "c463a41ad7ce8bbb976d7e2a4d970569ea22f5e6",
+        "type": "github"
+      },
+      "original": {
+        "owner": "Ninlives",
+        "repo": "nixbot-telegram",
+        "type": "github"
+      }
+    },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1629209076,
-        "narHash": "sha256-/tOZIii4BZ6A76qb1kH9HbS9cVPm0a+CTIntBv+yRIs=",
+        "lastModified": 1629318195,
+        "narHash": "sha256-mFqoLruMu3poN6pkbegevDcGYwMVjoiyAexL+KE7DBg=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "6bb9ad36c526261a05587c261c5fe9ebbc010ef6",
+        "rev": "7c38b03f742a657bf38e9579adeb608fc7cc5f1a",
         "type": "github"
       },
       "original": {
@@ -113,6 +136,7 @@
         "deploy-rs": "deploy-rs",
         "flake-utils": "flake-utils",
         "impermanence": "impermanence",
+        "nixbot": "nixbot",
         "nixpkgs": "nixpkgs",
         "sops-nix": "sops-nix"
       }
