@@ -16,6 +16,7 @@
       WorkingDirectory = "/tmp";
       CacheDirectory = "nixbot";
       PrivateTmp = true;
+      Restart = "always";
       LoadCredential = "nixbot:${config.sops.secrets.nixbot.path}";
     };
     script = ''
