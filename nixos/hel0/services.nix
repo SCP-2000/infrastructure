@@ -14,13 +14,11 @@
     serviceConfig = {
       DynamicUser = true;
       WorkingDirectory = "/tmp";
-      CacheDirectory = "nixbot";
       PrivateTmp = true;
       Restart = "always";
       LoadCredential = "nixbot:${config.sops.secrets.nixbot.path}";
     };
     script = ''
-      export XDG_CACHE_HOME=''${CACHE_DIRECTORY}
       exec ${pkgs.nixbot-telegram}/bin/nixbot-telegram ''${CREDENTIALS_DIRECTORY}/nixbot
     '';
     wantedBy = [ "multi-user.target" ];
