@@ -55,6 +55,7 @@
 
   services.minio = {
     enable = true;
+    browser = false;
     listenAddress = "127.0.0.1:9000";
     rootCredentialsFile = config.sops.secrets.minio.path;
   };
