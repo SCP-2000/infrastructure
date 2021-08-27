@@ -8,6 +8,7 @@ let
   ];
 in
 {
+  boot.kernelPackages = pkgs.linuxPackages_latest;
   boot.initrd.availableKernelModules = [ "ahci" "sd_mod" ];
   boot.kernelModules = [ "kvm-amd" ];
 
