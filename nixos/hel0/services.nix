@@ -1,4 +1,38 @@
 { config, lib, pkgs, ... }:
+let mkService = { ExecStart, EnvironmentFile ? null, restartTriggers ? [] }: {
+  inherit restartTriggers;
+  serviceConfig = {
+    MemoryLimit = "300M";
+    DynamicUser = true;
+    NoNewPrivileges = true;
+    ProtectSystem = "strict";
+    PrivateUsers = true;
+    PrivateDevices = true;
+    ProtectClock = true;
+    ProtectControlGroups = true;
+    ProtectHome = true;
+    ProtectKernelTunables = true;
+    ProtectKernelModules = true;
+    ProtectKernelLogs = true;
+    ProtectProc = "invisible";
+    LockPersonality = true;
+    MemoryDenyWriteExecute = true;
+    RestrictNamespaces = true;
+    RestrictRealtime = true;
+    RestrictSUIDSGID = true;
+    CapabilityBoundingSet = "";
+    ProtectHostname = true;
+    ProcSubset = "pid";
+    SystemCallArchitectures = "native";
+    UMask = "0077";
+    SystemCallFilter = "@system-service";
+    SystemCallErrorNumber = "EPERM";
+    Restart = "always";
+    inherit ExecStart EnvironmentFile;
+  };
+  wantedBy = [ "multi-user.target" ];
+};
+in
 {
   sops = {
     defaultSopsFile = ./secrets.yaml;
@@ -7,7 +41,14 @@
       minio = { };
       telegraf = { };
       nixbot = { };
+      meow = { };
     };
+  };
+
+  systemd.services.meow = mkService {
+    ExecStart = "${pkgs.meow}/bin/meow";
+    EnvironmentFile = config.sops.secrets.meow.path;
+    restartTriggers = [ config.sops.secrets.meow.sopsFileHash ];
   };
 
   systemd.services.nixbot = {
@@ -70,6 +111,7 @@
   services.traefik = {
     enable = true;
     staticConfigOptions = {
+      experimental.http3 = true;
       entryPoints = {
         http = {
           address = ":80";
@@ -82,6 +124,7 @@
         https = {
           address = ":443";
           http.tls.certResolver = "le";
+          enableHTTP3 = true;
         };
       };
       certificatesResolvers.le.acme = {
@@ -109,6 +152,10 @@
             rule = "Host(`s3.nichi.co`)";
             service = "minio";
           };
+          meow = {
+            rule = "Host(`pb.nichi.co`)";
+            service = "meow";
+          };
           influx = {
             rule = "Host(`stats.nichi.co`)";
             service = "influx";
@@ -118,6 +165,10 @@
           minio.loadBalancer = {
             passHostHeader = true;
             servers = [{ url = "http://${config.services.minio.listenAddress}"; }];
+          };
+          meow.loadBalancer = {
+            passHostHeader = true;
+            servers = [{ url = "http://127.0.0.1:8002"; }];
           };
           influx.loadBalancer = {
             passHostHeader = true;
