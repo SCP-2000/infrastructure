@@ -1,5 +1,5 @@
 { config, lib, pkgs, ... }:
-let mkService = { ExecStart, EnvironmentFile ? null, restartTriggers ? [] }: {
+let mkService = { ExecStart, EnvironmentFile ? null, restartTriggers ? [ ] }: {
   inherit restartTriggers;
   serviceConfig = {
     MemoryLimit = "300M";
