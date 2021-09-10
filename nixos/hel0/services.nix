@@ -1,37 +1,53 @@
 { config, lib, pkgs, ... }:
-let mkService = { ExecStart, EnvironmentFile ? null, restartTriggers ? [ ] }: {
-  inherit restartTriggers;
-  serviceConfig = {
-    MemoryLimit = "300M";
-    DynamicUser = true;
-    NoNewPrivileges = true;
-    ProtectSystem = "strict";
-    PrivateUsers = true;
-    PrivateDevices = true;
-    ProtectClock = true;
-    ProtectControlGroups = true;
-    ProtectHome = true;
-    ProtectKernelTunables = true;
-    ProtectKernelModules = true;
-    ProtectKernelLogs = true;
-    ProtectProc = "invisible";
-    LockPersonality = true;
-    MemoryDenyWriteExecute = true;
-    RestrictNamespaces = true;
-    RestrictRealtime = true;
-    RestrictSUIDSGID = true;
-    CapabilityBoundingSet = "";
-    ProtectHostname = true;
-    ProcSubset = "pid";
-    SystemCallArchitectures = "native";
-    UMask = "0077";
-    SystemCallFilter = "@system-service";
-    SystemCallErrorNumber = "EPERM";
-    Restart = "always";
-    inherit ExecStart EnvironmentFile;
+let
+  mkService = { ExecStart, EnvironmentFile ? null, restartTriggers ? [ ] }: {
+    inherit restartTriggers;
+    serviceConfig = {
+      MemoryLimit = "300M";
+      DynamicUser = true;
+      NoNewPrivileges = true;
+      ProtectSystem = "strict";
+      PrivateUsers = true;
+      PrivateDevices = true;
+      ProtectClock = true;
+      ProtectControlGroups = true;
+      ProtectHome = true;
+      ProtectKernelTunables = true;
+      ProtectKernelModules = true;
+      ProtectKernelLogs = true;
+      ProtectProc = "invisible";
+      LockPersonality = true;
+      MemoryDenyWriteExecute = true;
+      RestrictNamespaces = true;
+      RestrictRealtime = true;
+      RestrictSUIDSGID = true;
+      CapabilityBoundingSet = "";
+      ProtectHostname = true;
+      ProcSubset = "pid";
+      SystemCallArchitectures = "native";
+      UMask = "0077";
+      SystemCallFilter = "@system-service";
+      SystemCallErrorNumber = "EPERM";
+      Restart = "always";
+      inherit ExecStart EnvironmentFile;
+    };
+    wantedBy = [ "multi-user.target" ];
   };
-  wantedBy = [ "multi-user.target" ];
-};
+  vault-config = (pkgs.formats.json { }).generate "config.json" {
+    listener = [{
+      tcp = {
+        address = "[::1]:8200";
+        cluster_address = "[::1]:8201";
+        tls_disable = true;
+      };
+    }];
+    storage = {
+      file.path = "/var/lib/vault"; # TODO: read from env
+    };
+    ui = true;
+    api_addr = "https://vault.nichi.co";
+    cluster_addr = "https://[::1]:8201";
+  };
 in
 {
   sops = {
@@ -42,6 +58,32 @@ in
       telegraf = { };
       nixbot = { };
       meow = { };
+    };
+  };
+
+  systemd.services.vault = {
+    description = "HashiCorp Vault - A tool for managing secrets";
+    documentation = [ "https://vaultproject.io/docs/" ];
+    requires = [ "network-online.target" ];
+    after = [ "network-online.target" ];
+    wantedBy = [ "multi-user.target" ];
+    serviceConfig = {
+      DynamicUser = true;
+      PrivateDevices = true;
+      SecureBits = "keep-caps";
+      AmbientCapabilities = "CAP_IPC_LOCK";
+      CapabilityBoundingSet = "CAP_SYSLOG CAP_IPC_LOCK";
+      LimitMEMLOCK = "infinity";
+      StateDirectory = "vault";
+      ExecStart = "${pkgs.vault-bin}/bin/vault server -config=${vault-config}";
+      ExecReload = "${pkgs.util-linux}/bin/kill --signal HUP $MAINPID";
+      KillMode = "process";
+      KillSignal = "SIGINT";
+      Restart = "on-failure";
+      RestartSec = 5;
+      TimeoutStopSec = 30;
+      StartLimitIntervalSec = 60;
+      StartLimitBurst = 3;
     };
   };
 
@@ -160,6 +202,10 @@ in
             rule = "Host(`stats.nichi.co`)";
             service = "influx";
           };
+          vault = {
+            rule = "Host(`vault.nichi.co`)";
+            service = "vault";
+          };
         };
         services = {
           minio.loadBalancer = {
@@ -173,6 +219,10 @@ in
           influx.loadBalancer = {
             passHostHeader = true;
             servers = [{ url = "http://${config.services.influxdb2.settings.http-bind-address}"; }];
+          };
+          vault.loadBalancer = {
+            passHostHeader = true;
+            servers = [{ url = "http://[::1]:8200"; }];
           };
         };
       };
