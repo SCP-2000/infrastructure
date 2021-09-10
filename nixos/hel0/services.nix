@@ -48,6 +48,30 @@ let
     api_addr = "https://vault.nichi.co";
     cluster_addr = "https://[::1]:8201";
   };
+  vault-agent = (pkgs.formats.json { }).generate "agent.json" {
+    vault = {
+      address = "https://vault.nichi.co";
+    };
+    cache = {
+      use_auto_auth_token = true;
+    };
+    listener = [{
+      unix = {
+        address = "/tmp/agent.sock";
+        tls_disable = true;
+      };
+    }];
+    auto_auth = {
+      method = [{
+        type = "approle";
+        config = {
+          role_id_file_path = "/run/secrets/vault-agent-roleid";
+          secret_id_file_path = "/run/secrets/vault-agent-secretid";
+          remove_secret_id_file_after_reading = false;
+        };
+      }];
+    };
+  };
 in
 {
   sops = {
@@ -58,9 +82,31 @@ in
       telegraf = { };
       nixbot = { };
       meow = { };
+      vault-agent-roleid = { mode = "0444"; };
+      vault-agent-secretid = { mode = "0444"; };
     };
   };
-
+    
+  systemd.services.vault-agent = {
+    description = "HashiCorp Vault Agent - A tool for managing secrets";
+    documentation = [ "https://www.vaultproject.io/docs/agent/" ];
+    requires = [ "network-online.target" ];
+    after = [ "network-online.target" ];
+    wantedBy = [ "multi-user.target" ];
+    serviceConfig = {
+      DynamicUser = true;
+      PrivateDevices = true;
+      ExecStart = "${pkgs.vault-bin}/bin/vault agent -config=${vault-agent}";
+      KillMode = "process";
+      KillSignal = "SIGINT";
+      Restart = "on-failure";
+      RestartSec = 5;
+      TimeoutStopSec = 30;
+      StartLimitIntervalSec = 60;
+      StartLimitBurst = 3;
+    };
+  }; 
+    
   systemd.services.vault = {
     description = "HashiCorp Vault - A tool for managing secrets";
     documentation = [ "https://vaultproject.io/docs/" ];
