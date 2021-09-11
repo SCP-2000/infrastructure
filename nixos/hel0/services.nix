@@ -87,6 +87,21 @@ let
         destination = "/tmp/consul_server.key";
         error_on_missing_key = true;
       }
+      {
+        contents = ''{{ with secret "nomad/root/issue/nomad" "ttl=24h" "common_name=server.global.nomad" }}{{ .Data.issuing_ca }}{{ end }}'';
+        destination = "/tmp/nomad_ca.crt";
+        error_on_missing_key = true;
+      }
+      {
+        contents = ''{{ with secret "nomad/root/issue/nomad" "ttl=24h" "common_name=server.global.nomad" }}{{ .Data.certificate }}{{ end }}'';
+        destination = "/tmp/nomad_server.crt";
+        error_on_missing_key = true;
+      }
+      {
+        contents = ''{{ with secret "nomad/root/issue/nomad" "ttl=24h" "common_name=server.global.nomad" }}{{ .Data.private_key }}{{ end }}'';
+        destination = "/tmp/nomad_server.key";
+        error_on_missing_key = true;
+      }
     ];
   };
   consul-config = (pkgs.formats.json { }).generate "consul.json" {
@@ -137,6 +152,43 @@ let
     verify_incoming = true;
     verify_outgoing = true;
     verify_server_hostname = true;
+  };
+  nomad-config = (pkgs.formats.json { }).generate "nomad.json" {
+    acl = {
+      enabled = false;
+    };
+    advertise = {
+      serf = "{{ GetPublicInterfaces | include \"type\" \"IPv4\" | limit 1 | attr \"address\" }}";
+      http = "{{ GetPublicInterfaces | include \"type\" \"IPv4\" | limit 1 | attr \"address\" }}";
+      rpc = "{{ GetPublicInterfaces | include \"type\" \"IPv4\" | limit 1 | attr \"address\" }}";
+    };
+    consul = {
+      address = "127.0.0.1:8501";
+      ca_file = "/tmp/consul_ca.crt";
+      cert_file = "/tmp/consul_server.crt";
+      key_file = "/tmp/consul_server.key";
+      ssl = true;
+      verify_ssl = false; # TODO: true
+    };
+    server = {
+      enabled = true;
+      bootstrap_expect = 1;
+      # encrypt =
+    };
+    tls = {
+      ca_file = "/tmp/nomad_ca.crt";
+      cert_file = "/tmp/nomad_server.crt";
+      key_file = "/tmp/nomad_server.key";
+      http = true;
+      rpc = true;
+      verify_https_client = true;
+      verify_server_hostname = true;
+    };
+    vault = {
+      enabled = false; # TODO: true
+      address = "http://[::1]:9200";
+      token = "s.yVz3Wuju52MT50UlSHpe37yG"; # fake token
+    };
   };
 in
 {
@@ -196,6 +248,31 @@ in
       TimeoutStopSec = 30;
       StartLimitIntervalSec = 60;
       StartLimitBurst = 3;
+    };
+  };
+
+  systemd.services.nomad = {
+    description = "HashiCorp Nomad - A simple and flexible workload orchestrator";
+    documentation = [ "https://www.nomadproject.io/docs" ];
+    requires = [ "network-online.target" "vault-agent.service" ];
+    after = [ "network-online.target" "vault-agent.service" ];
+    wantedBy = [ "multi-user.target" ];
+    unitConfig = {
+      JoinsNamespaceOf = "vault-agent.service";
+    };
+    serviceConfig = {
+      DynamicUser = true;
+      StateDirectory = "nomad";
+      ExecStart = "${pkgs.nomad}/bin/nomad agent -data-dir=\${STATE_DIRECTORY} -config=${nomad-config}";
+      ExecReload = "${pkgs.util-linux}/bin/kill --signal HUP $MAINPID";
+      KillMode = "process";
+      KillSignal = "SIGINT";
+      Restart = "on-failure";
+      LimitNOFILE = "65536";
+      LimitNPROC = "infinity";
+      RestartSec = 2;
+      TasksMax = "infinity";
+      OOMScoreAdjust = -1000;
     };
   };
 
