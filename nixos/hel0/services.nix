@@ -100,16 +100,17 @@ let
       last_contact_threshold = "10s";
       server_stabilization_time = "30s";
     };
-      auto_config = {
-        authorization = {
-          enabled = true;
-          static = {
-            oidc_discovery_url = "https://vault.nichi.co/v1/identity/oidc";
-            bound_issuer = "https://vault.nichi.co/v1/identity/oidc";
-            bound_audiences = [ "node" ];
-          };
+    auto_config = {
+      authorization = {
+        enabled = true;
+        static = {
+          oidc_discovery_url = "https://vault.nichi.co/v1/identity/oidc";
+          bound_issuer = "https://vault.nichi.co/v1/identity/oidc";
+          bound_audiences = [ "node" ];
+          jwt_supported_algs = [ "ES512" ];
         };
       };
+    };
     bootstrap_expect = 1;
     connect = {
       enabled = true;
@@ -208,7 +209,7 @@ in
       JoinsNamespaceOf = "vault-agent.service";
     };
     serviceConfig = {
-      Type = "notify";
+      # Type = "notify";
       DynamicUser = true;
       StateDirectory = "consul";
       ExecStart = "${pkgs.consul}/bin/consul agent -data-dir=\${STATE_DIRECTORY} -config-file=${consul-config}";
