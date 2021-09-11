@@ -53,11 +53,11 @@ let
       address = "https://vault.nichi.co";
     };
     cache = {
-      use_auto_auth_token = true;
+      use_auto_auth_token = "force";
     };
     listener = [{
-      unix = {
-        address = "/tmp/agent.sock";
+      tcp = {
+        address = "[::1]:9200";
         tls_disable = true;
       };
     }];
@@ -71,6 +71,71 @@ let
         };
       }];
     };
+    template = [
+      {
+        contents = ''{{ with secret "consul/root/issue/consul" "ttl=24h" "common_name=server.global.consul" }}{{ .Data.issuing_ca }}{{ end }}'';
+        destination = "/tmp/consul_ca.crt";
+        error_on_missing_key = true;
+      }
+      {
+        contents = ''{{ with secret "consul/root/issue/consul" "ttl=24h" "common_name=server.global.consul" }}{{ .Data.certificate }}{{ end }}'';
+        destination = "/tmp/consul_server.crt";
+        error_on_missing_key = true;
+      }
+      {
+        contents = ''{{ with secret "consul/root/issue/consul" "ttl=24h" "common_name=server.global.consul" }}{{ .Data.private_key }}{{ end }}'';
+        destination = "/tmp/consul_server.key";
+        error_on_missing_key = true;
+      }
+    ];
+  };
+  consul-config = (pkgs.formats.json { }).generate "consul.json" {
+    acl = {
+      enabled = false;
+    };
+    advertise_addr_ipv4 = "{{ GetPublicInterfaces | include \"type\" \"IPv4\" | limit 1 | attr \"address\" }}";
+    advertise_addr_ipv6 = "{{ GetPublicInterfaces | include \"type\" \"IPv6\" | limit 1 | attr \"address\" }}";
+    bind_addr = "{{ GetPublicInterfaces | include \"type\" \"IPv4\" | limit 1 | attr \"address\" }}";
+    autopilot = {
+      last_contact_threshold = "10s";
+      server_stabilization_time = "30s";
+    };
+      auto_config = {
+        authorization = {
+          enabled = true;
+          static = {
+            oidc_discovery_url = "https://vault.nichi.co/v1/identity/oidc";
+            bound_issuer = "https://vault.nichi.co/v1/identity/oidc";
+            bound_audiences = [ "node" ];
+          };
+        };
+      };
+    bootstrap_expect = 1;
+    connect = {
+      enabled = true;
+      ca_provider = "vault";
+      ca_config = {
+        address = "http://[::1]:9200";
+        token = "s.yVz3Wuju52MT50UlSHpe37yG"; # fake token
+        root_pki_path = "connect/root";
+        intermediate_pki_path = "connect/intermediate";
+      };
+    };
+    datacenter = "global";
+    # encrypt = "";
+    disable_keyring_file = true;
+    ports = {
+      http = -1;
+      https = 8501;
+    };
+    server = true;
+    ui_config.enabled = true;
+    ca_file = "/tmp/consul_ca.crt";
+    cert_file = "/tmp/consul_server.crt";
+    key_file = "/tmp/consul_server.key";
+    verify_incoming = true;
+    verify_outgoing = true;
+    verify_server_hostname = true;
   };
 in
 {
@@ -86,10 +151,10 @@ in
       vault-agent-secretid = { mode = "0444"; };
     };
   };
-    
+
   systemd.services.vault-agent = {
     description = "HashiCorp Vault Agent - A tool for managing secrets";
-    documentation = [ "https://www.vaultproject.io/docs/agent/" ];
+    documentation = [ "https://www.vaultproject.io/docs/agent" ];
     requires = [ "network-online.target" ];
     after = [ "network-online.target" ];
     wantedBy = [ "multi-user.target" ];
@@ -105,11 +170,11 @@ in
       StartLimitIntervalSec = 60;
       StartLimitBurst = 3;
     };
-  }; 
-    
+  };
+
   systemd.services.vault = {
     description = "HashiCorp Vault - A tool for managing secrets";
-    documentation = [ "https://vaultproject.io/docs/" ];
+    documentation = [ "https://vaultproject.io/docs" ];
     requires = [ "network-online.target" ];
     after = [ "network-online.target" ];
     wantedBy = [ "multi-user.target" ];
@@ -130,6 +195,28 @@ in
       TimeoutStopSec = 30;
       StartLimitIntervalSec = 60;
       StartLimitBurst = 3;
+    };
+  };
+
+  systemd.services.consul = {
+    description = "HashiCorp Consul - A service mesh solution";
+    documentation = [ "https://www.consul.io/docs" ];
+    requires = [ "network-online.target" "vault-agent.service" ];
+    after = [ "network-online.target" "vault-agent.service" ];
+    wantedBy = [ "multi-user.target" ];
+    unitConfig = {
+      JoinsNamespaceOf = "vault-agent.service";
+    };
+    serviceConfig = {
+      Type = "notify";
+      DynamicUser = true;
+      StateDirectory = "consul";
+      ExecStart = "${pkgs.consul}/bin/consul agent -data-dir=\${STATE_DIRECTORY} -config-file=${consul-config}";
+      ExecReload = "${pkgs.util-linux}/bin/kill --signal HUP $MAINPID";
+      KillMode = "process";
+      KillSignal = "SIGTERM";
+      Restart = "on-failure";
+      LimitNOFILE = "65536";
     };
   };
 
