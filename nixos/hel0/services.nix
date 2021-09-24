@@ -37,7 +37,11 @@ in
 {
   sops = {
     defaultSopsFile = ./secrets.yaml;
-    sshKeyPaths = [ "/var/lib/sops.key" ];
+    age = {
+      keyFile = "/var/lib/sops.key";
+      sshKeyPaths = [ ];
+    };
+    gnupg.sshKeyPaths = [ ];
     secrets = {
       minio = { };
       telegraf = { };
@@ -66,7 +70,13 @@ in
     wantedBy = [ "multi-user.target" ];
   };
 
-  security.wrappers.smartctl.source = "${pkgs.smartmontools}/bin/smartctl";
+  security.wrappers.smartctl = {
+    owner = "root";
+    group = "root";
+    setuid = true;
+    setgid = true;
+    source = "${pkgs.smartmontools}/bin/smartctl";
+  };
   services.telegraf = {
     enable = true;
     environmentFiles = [ config.sops.secrets.telegraf.path ];
