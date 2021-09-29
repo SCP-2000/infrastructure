@@ -50,6 +50,13 @@ in
     };
   };
 
+  virtualisation.oci-containers.backend = "podman";
+  virtualisation.oci-containers.containers.tagging = {
+    image = "quay.io/numendacil/test:latest";
+    extraOptions = [ "--network=slirp4netns" "--memory=4G" ];
+    ports = [ "127.0.0.1:19000:8501" ];
+  };
+
   systemd.services.meow = mkService {
     ExecStart = "${pkgs.meow}/bin/meow";
     EnvironmentFile = config.sops.secrets.meow.path;
@@ -171,6 +178,10 @@ in
             rule = "Host(`stats.nichi.co`)";
             service = "influx";
           };
+          tagging = {
+            rule = "Host(`tagging.nichi.co`)";
+            service = "tagging";
+          };
         };
         services = {
           minio.loadBalancer = {
@@ -184,6 +195,10 @@ in
           influx.loadBalancer = {
             passHostHeader = true;
             servers = [{ url = "http://${config.services.influxdb2.settings.http-bind-address}"; }];
+          };
+          tagging.loadBalancer = {
+            passHostHeader = true;
+            servers = [{ url = "http://127.0.0.1:19000"; }];
           };
         };
       };
