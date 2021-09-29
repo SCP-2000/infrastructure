@@ -181,7 +181,11 @@ in
           tagging = {
             rule = "Host(`tagging.nichi.co`)";
             service = "tagging";
+            middlewares = [ "compress" ];
           };
+        };
+        middlewares = {
+          compress.compress = { };
         };
         services = {
           minio.loadBalancer = {
