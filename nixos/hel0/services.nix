@@ -126,6 +126,16 @@ in
     };
   };
 
+  systemd.packages = [ pkgs.maddy ];
+  environment.systemPackages = [ pkgs.maddy ];
+  users.users.maddy.isSystemUser = true;
+  users.users.maddy.group = "maddy";
+  users.groups.maddy = { };
+  environment.etc."maddy/maddy.conf".source = ./maddy.conf;
+  systemd.services.maddy = {
+    restartTriggers = [ ./maddy.conf ];
+  };
+
   services.traefik = {
     enable = true;
     staticConfigOptions = {
