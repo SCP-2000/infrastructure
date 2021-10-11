@@ -136,7 +136,9 @@ in
   systemd.services.maddy = {
     restartTriggers = [ ./maddy.conf ];
     serviceConfig = {
-      LoadCredential = "dkim.key:${config.sops.secrets.dkim.path}";
+      LoadCredential = [
+        "dkim.key:${config.sops.secrets.dkim.path}"
+      ];
     };
   };
 
