@@ -158,6 +158,14 @@ in
           http.tls.certResolver = "le";
           enableHTTP3 = true;
         };
+        imap = {
+          address = ":993";
+          http.tls.certResolver = "le";
+        };
+        submission = {
+          address = ":465";
+          http.tls.certResolver = "le";
+        };
       };
       certificatesResolvers.le.acme = {
         email = "blackhole@nichi.co";
@@ -174,26 +182,51 @@ in
         minVersion = "VersionTLS12";
         sniStrict = true;
       };
+      tcp = {
+        routers = {
+          imap = {
+            rule = "HostSNI(`hel0.nichi.link`)";
+            entryPoints = [ "imap" ];
+            service = "imap";
+            tls = { };
+          };
+          submission = {
+            rule = "HostSNI(`hel0.nichi.link`)";
+            entryPoints = [ "submission" ];
+            service = "submission";
+            tls = { };
+          };
+        };
+        services = {
+          imap.loadBalancer.servers = [{ address = "127.0.0.1:143"; }];
+          submission.loadBalancer.servers = [{ address = "127.0.0.1:587"; }];
+        };
+      };
       http = {
         routers = {
           ping = {
             rule = "Host(`hel0.nichi.link`)";
+            entryPoints = [ "https" ];
             service = "ping@internal";
           };
           minio = {
             rule = "Host(`s3.nichi.co`)";
+            entryPoints = [ "https" ];
             service = "minio";
           };
           meow = {
             rule = "Host(`pb.nichi.co`)";
+            entryPoints = [ "https" ];
             service = "meow";
           };
           influx = {
             rule = "Host(`stats.nichi.co`)";
+            entryPoints = [ "https" ];
             service = "influx";
           };
           tagging = {
             rule = "Host(`tagging.nichi.co`)";
+            entryPoints = [ "https" ];
             service = "tagging";
             middlewares = [ "compress" ];
           };
